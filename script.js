@@ -1,17 +1,20 @@
 
-/* ==========================================
-   ABHI MANAGER - FIREBASE APPLICATION
-   HTML + CSS + JavaScript
-========================================== */
+/* =========================================
+   ABHI MANAGER - FIREBASE CONFIGURATION
+   ========================================= */
 
-// 1. Firebase Console se actual config paste karein.
+// STEP 1:
+// Firebase Console > Project settings > General
+// > Your apps > Web app > Config
+// Wahan se apni asli values yahan paste karein.
+
 const firebaseConfig = {
-  apiKey: "AIzaSy...YOUR_REAL_KEY",
-  authDomain: "your-actual-project.firebaseapp.com",
-  projectId: "your-actual-project",
-  storageBucket: "your-actual-project.firebasestorage.app",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef123456"
+  apiKey: "PASTE_YOUR_API_KEY",
+  authDomain: "PASTE_YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "PASTE_YOUR_PROJECT_ID",
+  storageBucket: "PASTE_YOUR_STORAGE_BUCKET",
+  messagingSenderId: "PASTE_YOUR_SENDER_ID",
+  appId: "PASTE_YOUR_APP_ID"
 };
 
 const $ = id => document.getElementById(id);
@@ -26,51 +29,19 @@ const pendingSaves = new Set();
 
 const STATUSES = ["Present", "Absent", "Half Day", "Weekly Off"];
 
-// 2. Firebase initialize
-function initializeFirebase() {
-  try {
-    if (typeof firebase === "undefined") {
-      throw new Error("Firebase SDK load nahi hua.");
-    }
-
-    const required = [
-      firebaseConfig.apiKey,
-      firebaseConfig.authDomain,
-      firebaseConfig.projectId,
-      firebaseConfig.appId
-    ];
-
-    if (required.some(v => !v || v.startsWith("YOUR_"))) {
-      throw new Error(
-        "script.js mein Firebase Console ki asli config paste karein."
-      );
-    }
-
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-
-    auth = firebase.auth();
-    db = firebase.firestore();
-    return true;
-  } catch (error) {
-    console.error(error);
-    message("loginError", error.message, true);
-    return false;
-  }
-}
-
-// 3. Helpers
-function message(id, text, error = false) {
+function showMessage(id, text, isError = false) {
   const el = $(id);
   if (!el) return;
+
   el.textContent = text;
-  el.style.color = error ? "#dc2626" : "#15803d";
+  el.style.color = isError ? "#dc2626" : "#15803d";
 }
 
-function today() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+function localDateString(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function money(value) {
@@ -83,29 +54,88 @@ function money(value) {
 
 function escapeHTML(value) {
   return String(value).replace(/[&<>"']/g, c => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;",
-    '"': "&quot;", "'": "&#39;"
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
   })[c]);
 }
 
-// 4. User-specific Firestore collections
+// STEP 2: Validate Firebase configuration
+function validateFirebaseConfig(config) {
+  const required = [
+    "apiKey",
+    "authDomain",
+    "projectId",
+    "appId"
+  ];
+
+  for (const key of required) {
+    const value = config[key];
+
+    if (
+      typeof value !== "string" ||
+      !value.trim() ||
+      value.startsWith("PASTE_") ||
+      value.startsWith("YOUR_")
+    ) {
+      throw new Error(
+        `Firebase config missing hai: ${key}. Firebase Console se asli value paste karein.`
+      );
+    }
+  }
+}
+
+// STEP 3: Initialize Firebase
+function initializeFirebase() {
+  try {
+    if (typeof firebase === "undefined") {
+      throw new Error(
+        "Firebase SDK load nahi hua. Internet aur HTML script URLs check karein."
+      );
+    }
+
+    validateFirebaseConfig(firebaseConfig);
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+
+    auth = firebase.auth();
+    db = firebase.firestore();
+
+    console.log("Firebase initialized successfully.");
+    return true;
+  } catch (error) {
+    console.error("Firebase initialization:", error);
+    showMessage("loginError", error.message, true);
+    return false;
+  }
+}
+
+// User-specific Firestore collections
 function employeeCollection(uid = user?.uid) {
-  if (!uid || !db) throw new Error("Login required.");
+  if (!uid) throw new Error("Login required.");
   return db.collection("users").doc(uid).collection("employees");
 }
 
 function attendanceCollection(uid = user?.uid) {
-  if (!uid || !db) throw new Error("Login required.");
+  if (!uid) throw new Error("Login required.");
   return db.collection("users").doc(uid).collection("attendance");
 }
 
-// 5. Login
+// STEP 4: Login
 $("loginForm").addEventListener("submit", async event => {
   event.preventDefault();
-  message("loginError", "");
+  showMessage("loginError", "");
 
   if (!auth) {
-    message("loginError", "Firebase config check karein.", true);
+    showMessage(
+      "loginError",
+      "Firebase configuration pehle sahi karein.",
+      true
+    );
     return;
   }
 
@@ -119,23 +149,23 @@ $("loginForm").addEventListener("submit", async event => {
   try {
     await auth.signInWithEmailAndPassword(email, password);
   } catch (error) {
-    console.error("Login error:", error.code, error.message);
+    console.error("Firebase login error:", error.code, error.message);
 
-    const errors = {
-      "auth/invalid-email": "Email address sahi nahi hai.",
+    const messages = {
+      "auth/invalid-email": "Email address galat format mein hai.",
       "auth/invalid-credential": "Email ya password galat hai.",
-      "auth/user-not-found": "Account nahi mila.",
+      "auth/user-not-found": "Firebase Authentication mein account nahi mila.",
       "auth/wrong-password": "Password galat hai.",
-      "auth/too-many-requests": "Bahut attempts hue. Baad mein try karein.",
+      "auth/too-many-requests": "Bahut login attempts hue. Baad mein try karein.",
       "auth/network-request-failed": "Internet connection check karein.",
-      "auth/operation-not-allowed": "Email/Password provider enable karein.",
-      "auth/invalid-api-key": "Firebase API key check karein.",
-      "auth/user-disabled": "Account disabled hai."
+      "auth/operation-not-allowed": "Firebase mein Email/Password enable karein.",
+      "auth/invalid-api-key": "Firebase API key galat hai.",
+      "auth/user-disabled": "Ye account disabled hai."
     };
 
-    message(
+    showMessage(
       "loginError",
-      errors[error.code] || `Login failed: ${error.code || error.message}`,
+      messages[error.code] || `Login failed: ${error.code || error.message}`,
       true
     );
   } finally {
@@ -144,7 +174,7 @@ $("loginForm").addEventListener("submit", async event => {
   }
 });
 
-// 6. Logout
+// STEP 5: Logout
 $("logoutBtn").addEventListener("click", async () => {
   if (!auth) return;
 
@@ -152,55 +182,51 @@ $("logoutBtn").addEventListener("click", async () => {
     await auth.signOut();
   } catch (error) {
     console.error("Logout error:", error);
-    message("attendanceMessage", "Logout failed.", true);
+    showMessage("attendanceMessage", "Logout nahi hua.", true);
   }
 });
 
-// 7. Authentication state
-authStateSetup();
+// STEP 6: Authentication state
+async function handleAuthState(currentUser) {
+  user = currentUser;
 
-function authStateSetup() {
-  if (!initializeFirebase()) return;
+  $("loginSection").hidden = !!user;
+  $("appSection").hidden = !user;
 
-  auth.onAuthStateChanged(async currentUser => {
-    user = currentUser;
-    $("loginSection").hidden = !!user;
-    $("appSection").hidden = !user;
+  if (!user) {
+    employees = [];
+    attendanceRecords = [];
+    pendingSaves.clear();
 
-    if (!user) {
-      employees = [];
-      attendanceRecords = [];
-      pendingSaves.clear();
+    $("attendanceBody").replaceChildren();
+    $("salaryBody").replaceChildren();
+    $("totalEmployees").textContent = "0";
+    $("presentToday").textContent = "0";
+    $("absentToday").textContent = "0";
+    $("totalSalary").textContent = money(0);
+    $("userEmail").textContent = "";
+    return;
+  }
 
-      $("attendanceBody").replaceChildren();
-      $("salaryBody").replaceChildren();
-      $("totalEmployees").textContent = "0";
-      $("presentToday").textContent = "0";
-      $("absentToday").textContent = "0";
-      $("totalSalary").textContent = money(0);
-      $("userEmail").textContent = "";
-      return;
-    }
+  $("userEmail").textContent = user.email || "";
+  $("attendanceDate").value = localDateString();
+  $("reportMonth").value = localDateString().slice(0, 7);
 
-    $("userEmail").textContent = user.email || "";
-    $("attendanceDate").value = today();
-    $("reportMonth").value = today().slice(0, 7);
-    $("todayLabel").textContent = new Date().toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric"
-    });
-
-    await refreshData();
+  $("todayLabel").textContent = new Date().toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
   });
+
+  await refreshData();
 }
 
-// 8. Add record
+// STEP 7: Add record
 $("employeeForm").addEventListener("submit", async event => {
   event.preventDefault();
 
   if (!user) {
-    message("employeeMessage", "Pehle login karein.", true);
+    showMessage("employeeMessage", "Pehle login karein.", true);
     return;
   }
 
@@ -209,16 +235,20 @@ $("employeeForm").addEventListener("submit", async event => {
   const rawSalary = $("empSalary").value;
   const salary = Number(rawSalary);
   const btn = $("addRecordBtn");
+  const uid = user.uid;
 
   if (
-    !name || !code || code.includes("/") ||
-    rawSalary === "" || !Number.isFinite(salary) || salary < 0
+    !name ||
+    !code ||
+    code.includes("/") ||
+    rawSalary === "" ||
+    !Number.isFinite(salary) ||
+    salary < 0
   ) {
-    message("employeeMessage", "Valid details enter karein.", true);
+    showMessage("employeeMessage", "Valid details enter karein.", true);
     return;
   }
 
-  const uid = user.uid;
   btn.disabled = true;
   btn.textContent = "Saving...";
 
@@ -241,17 +271,17 @@ $("employeeForm").addEventListener("submit", async event => {
     });
 
     $("employeeForm").reset();
-    message("employeeMessage", "Record successfully saved.");
+    showMessage("employeeMessage", "Record successfully saved.");
     await refreshData();
   } catch (error) {
     console.error("Record save error:", error);
 
-    message(
+    showMessage(
       "employeeMessage",
       error.message === "DUPLICATE_RECORD"
         ? "Ye Record ID pehle se maujood hai."
         : error.code === "permission-denied"
-          ? "Firestore permission denied. Security Rules check karein."
+          ? "Firestore Rules ne permission deny ki."
           : "Record save nahi hua. Console check karein.",
       true
     );
@@ -261,7 +291,7 @@ $("employeeForm").addEventListener("submit", async event => {
   }
 });
 
-// 9. Reload Firestore data
+// STEP 8: Load Firestore data
 async function refreshData() {
   if (!user || loading) return;
 
@@ -269,19 +299,19 @@ async function refreshData() {
   const uid = user.uid;
 
   try {
-    const [empSnap, attSnap] = await Promise.all([
+    const [empSnapshot, attSnapshot] = await Promise.all([
       employeeCollection(uid).get(),
       attendanceCollection(uid).get()
     ]);
 
     if (!user || user.uid !== uid) return;
 
-    employees = empSnap.docs.map(doc => ({
+    employees = empSnapshot.docs.map(doc => ({
       ...doc.data(),
       code: doc.id
     }));
 
-    attendanceRecords = attSnap.docs.map(doc => ({
+    attendanceRecords = attSnapshot.docs.map(doc => ({
       ...doc.data(),
       id: doc.id
     }));
@@ -294,12 +324,13 @@ async function refreshData() {
     renderSalaryReport();
     updateDashboard();
   } catch (error) {
-    console.error("Data loading error:", error);
-    message(
+    console.error("Firestore load error:", error);
+
+    showMessage(
       "attendanceMessage",
       error.code === "permission-denied"
-        ? "Firestore Rules permission deny kar rahe hain."
-        : "Data load nahi hua. Firebase config aur internet check karein.",
+        ? "Firestore Security Rules check karein."
+        : "Data load nahi hua. Firebase configuration check karein.",
       true
     );
   } finally {
@@ -307,11 +338,14 @@ async function refreshData() {
   }
 }
 
-// 10. Attendance date and salary month filters
-$("attendanceDate").addEventListener("change", renderAttendance);
+// STEP 9: Attendance controls
+$("attendanceDate").addEventListener("change", () => {
+  renderAttendance();
+  updateDashboard();
+});
+
 $("reportMonth").addEventListener("change", renderSalaryReport);
 
-// 11. Render attendance table
 function renderAttendance() {
   const date = $("attendanceDate").value;
   const body = $("attendanceBody");
@@ -345,9 +379,9 @@ function renderAttendance() {
             aria-label="Attendance for ${escapeHTML(emp.name)}"
             ${pendingSaves.has(docId) ? "disabled" : ""}>
             <option value="" ${!status ? "selected" : ""}>Unmarked</option>
-            ${STATUSES.map(s => `
-              <option value="${s}" ${status === s ? "selected" : ""}>${s}</option>
-            `).join("")}
+            ${STATUSES.map(s =>
+              `<option value="${s}" ${status === s ? "selected" : ""}>${s}</option>`
+            ).join("")}
           </select>
         </td>
       </tr>
@@ -359,7 +393,7 @@ function renderAttendance() {
   });
 }
 
-// 12. Save attendance
+// STEP 10: Save attendance
 async function saveAttendance(event) {
   const select = event.currentTarget;
   if (!user) return;
@@ -373,7 +407,7 @@ async function saveAttendance(event) {
   if (pendingSaves.has(docId)) return;
 
   if (status && !STATUSES.includes(status)) {
-    message("attendanceMessage", "Invalid status.", true);
+    showMessage("attendanceMessage", "Invalid attendance status.", true);
     return;
   }
 
@@ -401,7 +435,10 @@ async function saveAttendance(event) {
       const index = attendanceRecords.findIndex(item => item.id === docId);
 
       if (index >= 0) {
-        attendanceRecords[index] = { ...attendanceRecords[index], ...record };
+        attendanceRecords[index] = {
+          ...attendanceRecords[index],
+          ...record
+        };
       } else {
         attendanceRecords.push({ ...record, id: docId });
       }
@@ -409,7 +446,7 @@ async function saveAttendance(event) {
 
     if (!user || user.uid !== uid) return;
 
-    message(
+    showMessage(
       "attendanceMessage",
       status ? "Attendance saved successfully." : "Attendance mark removed."
     );
@@ -418,10 +455,11 @@ async function saveAttendance(event) {
     updateDashboard();
   } catch (error) {
     console.error("Attendance save error:", error);
-    message(
+
+    showMessage(
       "attendanceMessage",
       error.code === "permission-denied"
-        ? "Permission denied. Firestore Rules check karein."
+        ? "Firestore permission denied. Rules check karein."
         : "Attendance save nahi hui. Dobara try karein.",
       true
     );
@@ -433,7 +471,7 @@ async function saveAttendance(event) {
   }
 }
 
-// 13. Monthly salary calculation
+// STEP 11: Calculate monthly salary
 function getMonthlyStats(emp, month) {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
     return {
@@ -442,8 +480,8 @@ function getMonthlyStats(emp, month) {
     };
   }
 
-  const [year, monthNumber] = month.split("-").map(Number);
-  const days = new Date(year, monthNumber, 0).getDate();
+  const [year, monthNum] = month.split("-").map(Number);
+  const days = new Date(year, monthNum, 0).getDate();
 
   const records = attendanceRecords.filter(item =>
     item.employeeId === emp.code &&
@@ -476,7 +514,7 @@ function getMonthlyStats(emp, month) {
   };
 }
 
-// 14. Render salary report
+// STEP 12: Render monthly salary report
 function renderSalaryReport() {
   const month = $("reportMonth").value;
   const body = $("salaryBody");
@@ -519,11 +557,13 @@ function renderSalaryReport() {
   $("totalSalary").textContent = money(total);
 }
 
-// 15. Dashboard counters
+// STEP 13: Update dashboard counters
 function updateDashboard() {
   $("totalEmployees").textContent = employees.length;
 
-  const records = attendanceRecords.filter(item => item.date === today());
+  const records = attendanceRecords.filter(
+    item => item.date === $("attendanceDate").value
+  );
 
   $("presentToday").textContent = records.filter(
     item => item.status === "Present"
@@ -534,4 +574,9 @@ function updateDashboard() {
   ).length;
 
   renderSalaryReport();
+}
+
+// STEP 14: Start app only after initialization
+if (initializeFirebase()) {
+  auth.onAuthStateChanged(handleAuthState);
 }
