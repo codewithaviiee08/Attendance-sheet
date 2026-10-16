@@ -1,0 +1,231 @@
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f1f5f9;
+  color: #172033;
+  font-family: Arial, sans-serif;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.login-box {
+  width: min(92%, 400px);
+  margin: 70px auto;
+  padding: 28px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px #00000012;
+  text-align: center;
+}
+
+.login-box h1 {
+  color: #175cd3;
+}
+
+input, select, button {
+  font: inherit;
+  border-radius: 8px;
+}
+
+input, select {
+  width: 100%;
+  min-height: 43px;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  background: white;
+}
+
+.login-box input {
+  margin: 8px 0;
+}
+
+button {
+  border: none;
+  padding: 12px 16px;
+  background: #175cd3;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+.login-box button {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 5%;
+  background: #175cd3;
+  color: white;
+}
+
+.topbar h1 {
+  margin: 0 0 6px;
+}
+
+.topbar p {
+  margin: 0;
+}
+
+.logout {
+  background: #fff;
+  color: #175cd3;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+  padding: 22px 5%;
+}
+
+.card, .panel {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 3px 15px #00000008;
+}
+
+.card span {
+  display: block;
+  color: #64748b;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.card strong {
+  font-size: 23px;
+  overflow-wrap: anywhere;
+}
+
+.panel {
+  margin: 0 5% 22px;
+}
+
+.panel h2 {
+  margin-top: 0;
+  font-size: 20px;
+}
+
+.employee-form {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr auto;
+  gap: 10px;
+}
+
+label {
+  display: block;
+  margin: 10px 0;
+  font-weight: bold;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 15px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+
+th, td {
+  padding: 13px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+th {
+  background: #f8fafc;
+  font-size: 13px;
+}
+
+td select {
+  min-width: 125px;
+}
+
+.error {
+  color: #dc2626;
+}
+
+.message {
+  color: #15803d;
+  font-size: 14px;
+}
+
+.note {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-top: 15px;
+}
+
+@media (max-width: 850px) {
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .employee-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .employee-form button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar {
+    padding: 18px 4%;
+  }
+
+  .topbar h1 {
+    font-size: 20px;
+  }
+
+  .summary {
+    padding: 15px 4%;
+    gap: 10px;
+  }
+
+  .card {
+    padding: 15px;
+  }
+
+  .card strong {
+    font-size: 19px;
+  }
+
+  .panel {
+    margin: 0 4% 16px;
+    padding: 15px;
+  }
+
+  .employee-form {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-form button {
+    grid-column: auto;
+  }
+
+  .logout {
+    padding: 10px;
+  }
+}
