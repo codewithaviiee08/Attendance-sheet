@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#111827">
+  <meta name="description" content="Personal attendance and salary manager">
   <title>Abhi's Personal Attendance Manager</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -13,21 +14,37 @@
   <section id="loginSection" class="login-box">
     <div class="logo">A</div>
     <h1>Abhi's Personal Manager</h1>
-    <p>My Attendance & Salary Tracker</p>
+    <p>My Attendance &amp; Salary Tracker</p>
 
     <form id="loginForm">
       <label for="email">Personal Login ID</label>
-      <input id="email" type="email"
+      <input
+        id="email"
+        name="email"
+        type="email"
         value="Abhi@company.com"
-        placeholder="Enter email" required>
+        placeholder="Enter email"
+        autocomplete="username"
+        required
+      >
 
       <label for="password">Password</label>
-      <input id="Abhi@2608" type="password"
-        placeholder="Enter password" required>
+      <input
+        id="password"
+        name="password"
+        type="password"
+        placeholder="Enter password"
+        autocomplete="current-password"
+        required
+      >
 
-      <button type="submit" class="primary-btn">Login to Dashboard</button>
-      <p id="loginError" class="error" role="alert"></p>
+      <button type="submit" class="primary-btn">
+        Login to Dashboard
+      </button>
+
+      <p id="loginError" class="error" role="alert" aria-live="polite"></p>
     </form>
+
     <p class="small-text">Private Personal Dashboard</p>
   </section>
 
@@ -35,9 +52,9 @@
     <header class="topbar">
       <div>
         <h1>Abhi's Dashboard</h1>
-        <p>Personal Attendance & Salary Manager</p>
+        <p>Personal Attendance &amp; Salary Manager</p>
       </div>
-      <button id="logoutBtn" class="logout">Logout</button>
+      <button id="logoutBtn" class="logout" type="button">Logout</button>
     </header>
 
     <div class="container">
@@ -71,11 +88,19 @@
       <section class="panel">
         <h2>Add Personal Record</h2>
         <p class="muted">Add your own record or another record you manage.</p>
+
         <form id="employeeForm" class="employee-form">
-          <input id="empName" placeholder="Name" required>
-          <input id="empCode" placeholder="Unique Record ID" required>
-          <input id="empSalary" type="number" min="0" step="0.01"
-            placeholder="Monthly Salary ₹" required>
+          <input id="empName" name="empName" placeholder="Name" required>
+          <input id="empCode" name="empCode" placeholder="Unique Record ID" required>
+          <input
+            id="empSalary"
+            name="empSalary"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="Monthly Salary ₹"
+            required
+          >
           <button type="submit" class="primary-btn">+ Add Record</button>
         </form>
         <p id="employeeMessage" class="message" role="status"></p>
@@ -127,8 +152,9 @@
             <tbody id="salaryBody"></tbody>
           </table>
         </div>
+
         <p class="note">
-          Formula: Monthly Salary minus absent and half-day deductions.
+          Formula: Monthly salary minus absent and half-day deductions.
           Weekly Off is treated as paid.
         </p>
       </section>
