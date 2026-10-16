@@ -9,12 +9,13 @@
 // Wahan se apni asli values yahan paste karein.
 
 const firebaseConfig = {
-  apiKey: "PASTE_YOUR_API_KEY",
-  authDomain: "PASTE_YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "PASTE_YOUR_PROJECT_ID",
-  storageBucket: "PASTE_YOUR_STORAGE_BUCKET",
-  messagingSenderId: "PASTE_YOUR_SENDER_ID",
-  appId: "PASTE_YOUR_APP_ID"
+  apiKey: "AIzaSyD8YlU8RENtsYlRxaERp-W1FCaKdnB5GNU",
+  authDomain: "attendence-sheet-6ec46.firebaseapp.com",
+  projectId: "attendence-sheet-6ec46",
+  storageBucket: "attendence-sheet-6ec46.firebasestorage.app",
+  messagingSenderId: "775652875771",
+  appId: "1:775652875771:web:0afc209d0c48a7e547bf5e",
+  measurementId: "G-1P36YBRYMS"
 };
 
 const $ = id => document.getElementById(id);
@@ -28,6 +29,7 @@ let loading = false;
 const pendingSaves = new Set();
 
 const STATUSES = ["Present", "Absent", "Half Day", "Weekly Off"];
+let authMode = "login";
 
 function showMessage(id, text, isError = false) {
   const el = $(id);
@@ -35,6 +37,39 @@ function showMessage(id, text, isError = false) {
 
   el.textContent = text;
   el.style.color = isError ? "#dc2626" : "#15803d";
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const isRegistering = mode === "register";
+
+  $("confirmPasswordField").hidden = !isRegistering;
+  $("confirmPassword").required = isRegistering;
+  $("password").autocomplete = isRegistering
+    ? "new-password"
+    : "current-password";
+  $("loginCardTitle").textContent = isRegistering
+    ? "Create your account"
+    : "Welcome back";
+  $("loginSubtitle").textContent = isRegistering
+    ? "Create an account to get started with your personal workspace."
+    : "Sign in to continue to your attendance and salary dashboard.";
+  $("loginBtn").querySelector("span").textContent = isRegistering
+    ? "Create account"
+    : "Sign in";
+  $("authSwitchText").textContent = isRegistering
+    ? "Already have an account?"
+    : "New to Abhi Manager?";
+  $("authModeBtn").textContent = isRegistering
+    ? "Sign in"
+    : "Create an account";
+  $("password").value = "";
+  $("confirmPassword").value = "";
+  $("password").type = "password";
+  $("togglePassword").textContent = "Show";
+  $("togglePassword").setAttribute("aria-label", "Show password");
+  $("togglePassword").setAttribute("aria-pressed", "false");
+  showMessage("loginError", "");
 }
 
 function localDateString(date = new Date()) {
@@ -125,7 +160,11 @@ function attendanceCollection(uid = user?.uid) {
   return db.collection("users").doc(uid).collection("attendance");
 }
 
-// STEP 4: Login
+// STEP 4: Sign in or create an account
+$("authModeBtn").addEventListener("click", () => {
+  setAuthMode(authMode === "login" ? "register" : "login");
+});
+
 $("loginForm").addEventListener("submit", async event => {
   event.preventDefault();
   showMessage("loginError", "");
@@ -141,21 +180,49 @@ $("loginForm").addEventListener("submit", async event => {
 
   const email = $("email").value.trim();
   const password = $("password").value;
+  const isRegistering = authMode === "register";
+
+  if (isRegistering && password !== $("confirmPassword").value) {
+    showMessage("loginError", "Passwords do not match.", true);
+    $("confirmPassword").focus();
+    return;
+  }
+
   const btn = $("loginBtn");
+  const btnLabel = btn.querySelector("span");
 
   btn.disabled = true;
-  btn.textContent = "Signing in...";
+  btnLabel.textContent = isRegistering ? "Creating account..." : "Signing in...";
 
   try {
-    await auth.signInWithEmailAndPassword(email, password);
+    if (isRegistering) {
+      await auth.createUserWithEmailAndPassword(email, password);
+      await auth.signOut();
+      $("loginForm").reset();
+      setAuthMode("login");
+      $("email").value = email;
+      showMessage(
+        "loginError",
+        "Account created successfully. Sign in with your email and password."
+      );
+    } else {
+      await auth.signInWithEmailAndPassword(email, password);
+    }
   } catch (error) {
-    console.error("Firebase login error:", error.code, error.message);
+    console.error(
+      isRegistering ? "Firebase registration error:" : "Firebase login error:",
+      error.code,
+      error.message
+    );
 
     const messages = {
       "auth/invalid-email": "Email address galat format mein hai.",
       "auth/invalid-credential": "Email ya password galat hai.",
       "auth/user-not-found": "Firebase Authentication mein account nahi mila.",
       "auth/wrong-password": "Password galat hai.",
+      "auth/email-already-in-use": "This email already has an account. Please sign in.",
+      "auth/weak-password": "Password kam se kam 6 characters ka hona chahiye.",
+      "auth/configuration-not-found": "Firebase Console mein Authentication setup karein aur Email/Password sign-in enable karein.",
       "auth/too-many-requests": "Bahut login attempts hue. Baad mein try karein.",
       "auth/network-request-failed": "Internet connection check karein.",
       "auth/operation-not-allowed": "Firebase mein Email/Password enable karein.",
@@ -170,8 +237,21 @@ $("loginForm").addEventListener("submit", async event => {
     );
   } finally {
     btn.disabled = false;
-    btn.textContent = "Sign in to Dashboard";
+    btnLabel.textContent = authMode === "register"
+      ? "Create account"
+      : "Sign in";
   }
+});
+
+$("togglePassword").addEventListener("click", event => {
+  const button = event.currentTarget;
+  const password = $("password");
+  const isVisible = password.type === "text";
+
+  password.type = isVisible ? "password" : "text";
+  button.textContent = isVisible ? "Show" : "Hide";
+  button.setAttribute("aria-label", `${isVisible ? "Show" : "Hide"} password`);
+  button.setAttribute("aria-pressed", String(!isVisible));
 });
 
 // STEP 5: Logout

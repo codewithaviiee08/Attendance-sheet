@@ -10,28 +10,78 @@
 </head>
 <body>
   <section id="loginSection" class="login-page">
+    <aside class="login-story" aria-label="Workspace overview">
+      <a class="login-brand" href="#" aria-label="Abhi Manager home">
+        <span class="login-brand-mark">A</span>
+        <span>Abhi<span class="login-brand-light">Manager</span></span>
+      </a>
+
+      <div class="login-story-copy">
+        <p class="eyebrow">YOUR WORKDAY, IN ONE PLACE</p>
+        <h1>Stay on top of every workday.</h1>
+        <p>Track attendance, keep records organized, and get a clear view of your monthly pay.</p>
+      </div>
+
+      <div class="login-preview" aria-hidden="true">
+        <div class="preview-heading">
+          <span class="preview-mark">A</span>
+          <span>Workspace overview</span>
+          <span class="preview-status"><i></i> Up to date</span>
+        </div>
+        <div class="preview-divider"></div>
+        <div class="preview-stats">
+          <div><span>ATTENDANCE</span><strong>All in order</strong></div>
+          <div><span>MONTHLY PAY</span><strong>Ready to review</strong></div>
+        </div>
+        <div class="preview-progress"><span></span></div>
+      </div>
+
+      <p class="login-story-foot">A clearer way to manage your workday.</p>
+    </aside>
+
     <div class="login-card">
-      <div class="logo">A</div>
+      <div class="mobile-login-mark" aria-hidden="true">A</div>
       <p class="eyebrow">PERSONAL WORKSPACE</p>
-      <h1>Welcome back, Abhi</h1>
-      <p class="subtitle">Sign in to manage your attendance and salary.</p>
+      <h2 id="loginCardTitle">Welcome back</h2>
+      <p id="loginSubtitle" class="subtitle">Sign in to continue to your attendance and salary dashboard.</p>
 
       <form id="loginForm">
-        <label for="email">Email address</label>
-        <input id="email" type="email" value="Abhi@company.com"
-          placeholder="Enter your email" autocomplete="username" required>
+        <div class="login-field">
+          <label for="email">Email address</label>
+          <input id="email" type="email"
+            placeholder="you@example.com" autocomplete="username"
+            autocapitalize="none" spellcheck="false" required>
+        </div>
 
-        <label for="password">Password</label>
-        <input id="password" type="password"
-          placeholder="Enter your password"
-          autocomplete="current-password" required>
+        <div class="login-field">
+          <label for="password">Password</label>
+          <div class="password-control">
+            <input id="password" type="password"
+              placeholder="Enter your password"
+              autocomplete="current-password" required>
+            <button id="togglePassword" class="password-toggle" type="button"
+              aria-label="Show password" aria-pressed="false">Show</button>
+          </div>
+        </div>
+
+        <div id="confirmPasswordField" class="login-field" hidden>
+          <label for="confirmPassword">Confirm password</label>
+          <input id="confirmPassword" type="password"
+            placeholder="Enter your password again"
+            autocomplete="new-password" minlength="6">
+        </div>
 
         <button id="loginBtn" type="submit" class="btn primary">
-          Sign in to Dashboard
+          <span>Sign in</span>
+          <span class="login-btn-arrow" aria-hidden="true">→</span>
         </button>
         <p id="loginError" class="error" role="alert"></p>
       </form>
-      <p class="privacy">🔒 Private personal dashboard</p>
+      <p class="auth-switch">
+        <span id="authSwitchText">New to Abhi Manager?</span>
+        <button id="authModeBtn" type="button">Create an account</button>
+      </p>
+      <p class="privacy"><span class="privacy-lock" aria-hidden="true">✓</span> Your personal workspace is private and secure.</p>
     </div>
   </section>
 
