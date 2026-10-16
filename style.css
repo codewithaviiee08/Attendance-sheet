@@ -3,177 +3,284 @@
   box-sizing: border-box;
 }
 
+:root {
+  --primary: #4f46e5;
+  --primary-dark: #3730a3;
+  --background: #f3f5fb;
+  --text: #172033;
+  --muted: #64748b;
+  --border: #e2e8f0;
+}
+
 body {
   margin: 0;
-  background: #f1f5f9;
-  color: #172033;
   font-family: Arial, sans-serif;
+  background: var(--background);
+  color: var(--text);
 }
 
 [hidden] {
   display: none !important;
 }
 
-.login-box {
-  width: min(92%, 400px);
-  margin: 70px auto;
-  padding: 28px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 8px 30px #00000012;
-  text-align: center;
-}
-
-.login-box h1 {
-  color: #175cd3;
-}
-
-input, select, button {
+button, input, select {
   font: inherit;
-  border-radius: 8px;
 }
 
 input, select {
   width: 100%;
-  min-height: 43px;
-  padding: 10px;
+  min-height: 44px;
+  padding: 11px;
   border: 1px solid #cbd5e1;
+  border-radius: 9px;
   background: white;
+  color: var(--text);
 }
 
-.login-box input {
-  margin: 8px 0;
+input:focus, select:focus {
+  outline: 2px solid #a5b4fc;
+  border-color: var(--primary);
 }
 
 button {
-  border: none;
+  border: 0;
+  border-radius: 9px;
   padding: 12px 16px;
-  background: #175cd3;
-  color: white;
+  font-weight: 700;
   cursor: pointer;
+}
+
+button:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.primary-btn {
+  background: var(--primary);
+  color: white;
+}
+
+.primary-btn:hover {
+  background: var(--primary-dark);
+}
+
+.login-box {
+  width: min(92%, 410px);
+  margin: 65px auto;
+  padding: 30px;
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 15px 50px #1e293b12;
+}
+
+.logo {
+  display: grid;
+  place-items: center;
+  width: 55px;
+  height: 55px;
+  margin: 0 auto 16px;
+  border-radius: 16px;
+  background: var(--primary);
+  color: white;
+  font-size: 27px;
   font-weight: bold;
 }
 
-button:hover {
-  opacity: 0.9;
+.login-box h1, .login-box > p {
+  text-align: center;
 }
 
-.login-box button {
-  width: 100%;
-  margin-top: 10px;
+.login-box h1 {
+  font-size: 23px;
+}
+
+.login-box form {
+  display: grid;
+  gap: 10px;
+  margin-top: 25px;
+}
+
+.login-box label, label {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.small-text, .muted, .note {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.error {
+  color: #dc2626;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.message {
+  font-size: 13px;
+  color: #15803d;
 }
 
 .topbar {
+  background: #111827;
+  color: white;
+  padding: 20px 5%;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  padding: 20px 5%;
-  background: #175cd3;
-  color: white;
+  gap: 15px;
 }
 
 .topbar h1 {
-  margin: 0 0 6px;
+  font-size: 22px;
+  margin: 0 0 7px;
 }
 
 .topbar p {
   margin: 0;
+  color: #cbd5e1;
+  font-size: 13px;
 }
 
 .logout {
-  background: #fff;
-  color: #175cd3;
+  color: #111827;
+  background: white;
+}
+
+.container {
+  width: min(1200px, 92%);
+  margin: 24px auto;
+}
+
+.welcome {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0 20px;
+}
+
+.welcome h2 {
+  margin-bottom: 7px;
+}
+
+.welcome p {
+  margin-top: 0;
+  color: var(--muted);
+}
+
+.date-badge {
+  color: var(--primary-dark);
+  background: #e0e7ff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
 }
 
 .summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 15px;
-  padding: 22px 5%;
+  margin-bottom: 22px;
 }
 
 .card, .panel {
   background: white;
-  border-radius: 12px;
+  border: 1px solid #e9edf5;
+  border-radius: 14px;
   padding: 20px;
-  box-shadow: 0 3px 15px #00000008;
+  box-shadow: 0 4px 18px #0f172a06;
 }
 
 .card span {
   display: block;
-  color: #64748b;
-  font-size: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
   margin-bottom: 12px;
 }
 
 .card strong {
+  display: block;
   font-size: 23px;
   overflow-wrap: anywhere;
 }
 
+.highlight {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
 .panel {
-  margin: 0 5% 22px;
+  margin-bottom: 22px;
 }
 
 .panel h2 {
+  font-size: 19px;
   margin-top: 0;
-  font-size: 20px;
 }
 
 .employee-form {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr 1fr auto;
   gap: 10px;
+  align-items: center;
 }
 
-label {
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panel > label {
   display: block;
-  margin: 10px 0;
-  font-weight: bold;
+  margin: 12px 0 8px;
 }
 
 .table-wrap {
   width: 100%;
   overflow-x: auto;
-  margin-top: 15px;
+  margin-top: 16px;
 }
 
 table {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
-  min-width: 520px;
 }
 
 th, td {
-  padding: 13px 10px;
-  border-bottom: 1px solid #e2e8f0;
   text-align: left;
+  padding: 13px 11px;
+  border-bottom: 1px solid var(--border);
 }
 
 th {
   background: #f8fafc;
-  font-size: 13px;
+  font-size: 12px;
+  color: #475569;
+  white-space: nowrap;
 }
 
-td select {
-  min-width: 125px;
-}
-
-.error {
-  color: #dc2626;
-}
-
-.message {
-  color: #15803d;
+td {
   font-size: 14px;
 }
 
+td select {
+  min-width: 130px;
+}
+
 .note {
-  color: #64748b;
-  font-size: 13px;
-  line-height: 1.6;
   margin-top: 15px;
+}
+
+footer {
+  text-align: center;
+  color: var(--muted);
+  padding: 10px 0 25px;
+  font-size: 12px;
 }
 
 @media (max-width: 850px) {
@@ -190,22 +297,49 @@ td select {
   }
 }
 
-@media (max-width: 480px) {
-  .topbar {
-    padding: 18px 4%;
+@media (max-width: 500px) {
+  .login-box {
+    margin: 30px auto;
+    padding: 23px;
   }
 
-  .topbar h1 {
+  .login-box h1 {
     font-size: 20px;
   }
 
+  .topbar {
+    padding: 17px 4%;
+  }
+
+  .topbar h1 {
+    font-size: 18px;
+  }
+
+  .topbar p {
+    max-width: 220px;
+    line-height: 1.5;
+  }
+
+  .logout {
+    padding: 10px;
+  }
+
+  .container {
+    width: 92%;
+    margin-top: 15px;
+  }
+
+  .welcome {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .summary {
-    padding: 15px 4%;
     gap: 10px;
   }
 
   .card {
-    padding: 15px;
+    padding: 14px;
   }
 
   .card strong {
@@ -213,8 +347,8 @@ td select {
   }
 
   .panel {
-    margin: 0 4% 16px;
     padding: 15px;
+    margin-bottom: 15px;
   }
 
   .employee-form {
@@ -223,9 +357,5 @@ td select {
 
   .employee-form button {
     grid-column: auto;
-  }
-
-  .logout {
-    padding: 10px;
   }
 }
