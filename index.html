@@ -5,118 +5,130 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#111827">
-  <meta name="description" content="Personal attendance and salary manager">
-  <title>Abhi's Personal Attendance Manager</title>
+  <title>Abhi | Personal Manager</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <section id="loginSection" class="login-page">
+    <div class="login-card">
+      <div class="logo">A</div>
+      <p class="eyebrow">PERSONAL WORKSPACE</p>
+      <h1>Welcome back, Abhi</h1>
+      <p class="subtitle">Sign in to manage your attendance and salary.</p>
 
-  <section id="loginSection" class="login-box">
-    <div class="logo">A</div>
-    <h1>Abhi's Personal Manager</h1>
-    <p>My Attendance &amp; Salary Tracker</p>
+      <form id="loginForm">
+        <label for="email">Email address</label>
+        <input id="email" type="email" value="Abhi@company.com"
+          placeholder="Enter your email" autocomplete="username" required>
 
-    <form id="loginForm">
-      <label for="email">Personal Login ID</label>
-      <input
-        id="email"
-        name="email"
-        type="email"
-        value="Abhi@company.com"
-        placeholder="Enter email"
-        autocomplete="username"
-        required
-      >
+        <label for="password">Password</label>
+        <input id="password" type="password"
+          placeholder="Enter your password"
+          autocomplete="current-password" required>
 
-      <label for="password">Password</label>
-      <input
-        id="password"
-        name="password"
-        type="password"
-         value="Abhi@2608.com"
-        placeholder="Enter password"
-        autocomplete="current-password"
-        required
-      >
-
-      <button type="submit" class="primary-btn">
-        Login to Dashboard
-      </button>
-
-      <p id="loginError" class="error" role="alert" aria-live="polite"></p>
-    </form>
-
-    <p class="small-text">Private Personal Dashboard</p>
+        <button id="loginBtn" type="submit" class="btn primary">
+          Sign in to Dashboard
+        </button>
+        <p id="loginError" class="error" role="alert"></p>
+      </form>
+      <p class="privacy">🔒 Private personal dashboard</p>
+    </div>
   </section>
 
   <main id="appSection" hidden>
     <header class="topbar">
-      <div>
-        <h1>Abhi's Dashboard</h1>
-        <p>Personal Attendance &amp; Salary Manager</p>
+      <a class="brand" href="#">
+        <span class="brand-logo">A</span>
+        <span>Abhi<span class="brand-light">Manager</span></span>
+      </a>
+      <div class="topbar-right">
+        <span id="userEmail" class="user-email"></span>
+        <button id="logoutBtn" class="btn logout">Logout ↗</button>
       </div>
-      <button id="logoutBtn" class="logout" type="button">Logout</button>
     </header>
 
     <div class="container">
       <section class="welcome">
         <div>
-          <h2>Welcome Back, Abhi!</h2>
-          <p>Manage your records in one place.</p>
+          <p class="eyebrow">YOUR WORKSPACE</p>
+          <h1>Good to see you, Abhi 👋</h1>
+          <p class="subtitle">Your attendance and salary overview.</p>
         </div>
-        <div class="date-badge" id="todayLabel"></div>
+        <div class="date-badge">
+          <span>Today</span>
+          <strong id="todayLabel"></strong>
+        </div>
       </section>
 
       <section class="summary">
-        <div class="card">
-          <span>Total Employees / Records</span>
+        <article class="stat-card">
+          <span class="stat-icon purple">▤</span>
+          <p>Total Records</p>
           <strong id="totalEmployees">0</strong>
-        </div>
-        <div class="card">
-          <span>Present Today</span>
+          <small>All personal records</small>
+        </article>
+        <article class="stat-card">
+          <span class="stat-icon green">✓</span>
+          <p>Present Today</p>
           <strong id="presentToday">0</strong>
-        </div>
-        <div class="card">
-          <span>Absent Today</span>
+          <small>Marked present</small>
+        </article>
+        <article class="stat-card">
+          <span class="stat-icon red">−</span>
+          <p>Absent Today</p>
           <strong id="absentToday">0</strong>
-        </div>
-        <div class="card highlight">
-          <span>Monthly Salary Payable</span>
+          <small>Marked absent</small>
+        </article>
+        <article class="stat-card salary-card">
+          <span class="stat-icon purple">₹</span>
+          <p>Monthly Payable</p>
           <strong id="totalSalary">₹0</strong>
-        </div>
+          <small id="salaryMonthLabel">Selected month</small>
+        </article>
       </section>
 
       <section class="panel">
-        <h2>Add Personal Record</h2>
-        <p class="muted">Add your own record or another record you manage.</p>
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">RECORD MANAGEMENT</p>
+            <h2>Add a personal record</h2>
+            <p class="subtitle">Create a record to start tracking attendance.</p>
+          </div>
+        </div>
 
         <form id="employeeForm" class="employee-form">
-          <input id="empName" name="empName" placeholder="Name" required>
-          <input id="empCode" name="empCode" placeholder="Unique Record ID" required>
-          <input
-            id="empSalary"
-            name="empSalary"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="Monthly Salary ₹"
-            required
-          >
-          <button type="submit" class="primary-btn">+ Add Record</button>
+          <div class="field">
+            <label for="empName">Full name</label>
+            <input id="empName" placeholder="Enter name" maxlength="100" required>
+          </div>
+          <div class="field">
+            <label for="empCode">Unique record ID</label>
+            <input id="empCode" placeholder="e.g. ABH001" maxlength="100" required>
+          </div>
+          <div class="field">
+            <label for="empSalary">Monthly salary (₹)</label>
+            <input id="empSalary" type="number" min="0" step="0.01"
+              placeholder="25000" required>
+          </div>
+          <button id="addRecordBtn" type="submit" class="btn primary add-btn">
+            + Add Record
+          </button>
         </form>
         <p id="employeeMessage" class="message" role="status"></p>
       </section>
 
       <section class="panel">
-        <div class="section-heading">
+        <div class="panel-heading">
           <div>
-            <h2>Daily Attendance</h2>
-            <p class="muted">Select a date and update your record.</p>
+            <p class="eyebrow">DAILY TRACKING</p>
+            <h2>Attendance</h2>
+            <p class="subtitle">Choose a date and update each record's status.</p>
+          </div>
+          <div class="field date-field">
+            <label for="attendanceDate">Attendance date</label>
+            <input id="attendanceDate" type="date" required>
           </div>
         </div>
-
-        <label for="attendanceDate">Attendance Date</label>
-        <input id="attendanceDate" type="date">
 
         <div class="table-wrap">
           <table>
@@ -124,7 +136,7 @@
               <tr>
                 <th>Record ID</th>
                 <th>Name</th>
-                <th>Attendance Status</th>
+                <th>Attendance status</th>
               </tr>
             </thead>
             <tbody id="attendanceBody"></tbody>
@@ -134,35 +146,40 @@
       </section>
 
       <section class="panel">
-        <h2>Monthly Salary Report</h2>
-        <label for="reportMonth">Select Month</label>
-        <input id="reportMonth" type="month">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">PAYROLL OVERVIEW</p>
+            <h2>Monthly salary report</h2>
+            <p class="subtitle">Review attendance counts and calculated salary.</p>
+          </div>
+          <div class="field date-field">
+            <label for="reportMonth">Report month</label>
+            <input id="reportMonth" type="month" required>
+          </div>
+        </div>
 
         <div class="table-wrap">
-          <table>
+          <table class="salary-table">
             <thead>
               <tr>
-                <th>Name</th>
+                <th>Name / ID</th>
                 <th>Present</th>
                 <th>Absent</th>
-                <th>Half Day</th>
-                <th>Weekly Off</th>
-                <th>Payable Salary</th>
+                <th>Half day</th>
+                <th>Weekly off</th>
+                <th>Payable salary</th>
               </tr>
             </thead>
             <tbody id="salaryBody"></tbody>
           </table>
         </div>
-
         <p class="note">
-          Formula: Monthly salary minus absent and half-day deductions.
-          Weekly Off is treated as paid.
+          Calculation: monthly salary minus absent-day and half-day deductions.
+          Weekly off is paid. Daily rate = monthly salary ÷ calendar days.
         </p>
       </section>
 
-      <footer>
-        Abhi's Personal Attendance Manager · Personal Use
-      </footer>
+      <footer>Abhi Manager · Personal attendance & salary tracker</footer>
     </div>
   </main>
 
