@@ -6,12 +6,12 @@
 
 // 1. Firebase Console se actual config paste karein.
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSy...YOUR_REAL_KEY",
+  authDomain: "your-actual-project.firebaseapp.com",
+  projectId: "your-actual-project",
+  storageBucket: "your-actual-project.firebasestorage.app",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef123456"
 };
 
 const $ = id => document.getElementById(id);
