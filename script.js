@@ -72,12 +72,11 @@ $("loginForm").addEventListener("submit", async (event) => {
       $("password").value
     );
   } catch (error) {
-    showMessage(
-      "loginError",
-      "Login failed. Email, password aur Firebase settings check karein.",
-      true
-    );
-  }
+  console.error("Firebase Error Code:", error.code);
+  console.error("Firebase Error Message:", error.message);
+
+  alert(`${error.code}: ${error.message}`);
+}
 });
 
 $("logoutBtn").addEventListener("click", () => auth.signOut());
