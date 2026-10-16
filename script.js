@@ -1,7 +1,6 @@
 
 /*
-  STEP 1:
-  Firebase Console se apni Firebase configuration yahan paste karein.
+  Firebase Console se apni Web App configuration yahan paste karein.
 */
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
@@ -16,14 +15,9 @@ firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.firestore();
-
 const $ = (id) => document.getElementById(id);
 
-const loginSection = $("loginSection");
-const appSection = $("appSection");
-const attendanceDate = $("attendanceDate");
-const reportMonth = $("reportMonth");
-
+let user = null;
 let employees = [];
 let attendanceRecords = [];
 let saving = false;
@@ -36,29 +30,38 @@ const money = (value) =>
   }).format(value);
 
 function localDateString(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function showMessage(id, message, isError = false) {
-  const el = $(id);
-  el.textContent = message;
-  el.style.color = isError ? "#dc2626" : "#15803d";
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function escapeHTML(value) {
-  return String(value).replace(/[&<>"']/g, (char) => ({
+  return String(value).replace(/[&<>"']/g, (c) => ({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
     '"': "&quot;",
     "'": "&#39;"
-  })[char]);
+  })[c]);
 }
 
-// LOGIN
+function showMessage(id, message, error = false) {
+  $(id).textContent = message;
+  $(id).style.color = error ? "#dc2626" : "#15803d";
+}
+
+// All personal data belongs to the authenticated UID.
+function employeeCollection() {
+  return db.collection("users").doc(user.uid)
+    .collection("employees");
+}
+
+function attendanceCollection() {
+  return db.collection("users").doc(user.uid)
+    .collection("attendance");
+}
+
 $("loginForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   showMessage("loginError", "");
@@ -71,7 +74,7 @@ $("loginForm").addEventListener("submit", async (event) => {
   } catch (error) {
     showMessage(
       "loginError",
-      "Login failed. Email/password check karein.",
+      "Login failed. Email, password aur Firebase settings check karein.",
       true
     );
   }
@@ -79,47 +82,51 @@ $("loginForm").addEventListener("submit", async (event) => {
 
 $("logoutBtn").addEventListener("click", () => auth.signOut());
 
-auth.onAuthStateChanged(async (user) => {
-  loginSection.hidden = !!user;
-  appSection.hidden = !user;
+auth.onAuthStateChanged(async (currentUser) => {
+  user = currentUser;
+  $("loginSection").hidden = !!user;
+  $("appSection").hidden = !user;
 
-  if (user) {
-    attendanceDate.value = localDateString();
-    reportMonth.value = localDateString().slice(0, 7);
-    await refreshData();
-  } else {
+  if (!user) {
     employees = [];
     attendanceRecords = [];
     $("attendanceBody").innerHTML = "";
     $("salaryBody").innerHTML = "";
+    return;
   }
+
+  $("attendanceDate").value = localDateString();
+  $("reportMonth").value = localDateString().slice(0, 7);
+  $("todayLabel").textContent = new Date().toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  });
+
+  await refreshData();
 });
 
-// ADD EMPLOYEE
+// Add personal record
 $("employeeForm").addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (!user) return;
 
   const name = $("empName").value.trim();
   const code = $("empCode").value.trim();
   const salary = Number($("empSalary").value);
 
-  if (!name || !code || !Number.isFinite(salary) || salary < 0) {
-    showMessage("employeeMessage", "Valid details bharein.", true);
-    return;
-  }
-
-  // Employee ID Firestore document ID hai.
-  if (code.includes("/") || code === "." || code === "..") {
-    showMessage("employeeMessage", "Employee ID mein / use na karein.", true);
+  if (!name || !code || code.includes("/") ||
+      !Number.isFinite(salary) || salary < 0) {
+    showMessage("employeeMessage", "Valid details enter karein.", true);
     return;
   }
 
   try {
-    const ref = db.collection("employees").doc(code);
+    const ref = employeeCollection().doc(code);
     const existing = await ref.get();
 
     if (existing.exists) {
-      showMessage("employeeMessage", "Ye Employee ID pehle se hai.", true);
+      showMessage("employeeMessage", "Ye ID pehle se maujood hai.", true);
       return;
     }
 
@@ -131,31 +138,36 @@ $("employeeForm").addEventListener("submit", async (event) => {
     });
 
     $("employeeForm").reset();
-    showMessage("employeeMessage", "Employee successfully add ho gaya.");
+    showMessage("employeeMessage", "Personal record successfully saved.");
     await refreshData();
   } catch (error) {
-    showMessage("employeeMessage", "Employee save nahi hua.", true);
     console.error(error);
+    showMessage("employeeMessage", "Save failed. Firebase rules check karein.", true);
   }
 });
 
-// ATTENDANCE DATE CHANGE
-attendanceDate.addEventListener("change", renderAttendance);
-reportMonth.addEventListener("change", renderSalaryReport);
+$("attendanceDate").addEventListener("change", () => {
+  renderAttendance();
+  updateDashboard();
+});
+
+$("reportMonth").addEventListener("change", renderSalaryReport);
 
 async function refreshData() {
+  if (!user) return;
+
   try {
-    const [employeeSnapshot, attendanceSnapshot] = await Promise.all([
-      db.collection("employees").get(),
-      db.collection("attendance").get()
+    const [empSnapshot, attSnapshot] = await Promise.all([
+      employeeCollection().get(),
+      attendanceCollection().get()
     ]);
 
-    employees = employeeSnapshot.docs.map((doc) => ({
+    employees = empSnapshot.docs.map((doc) => ({
       ...doc.data(),
       code: doc.id
     }));
 
-    attendanceRecords = attendanceSnapshot.docs.map((doc) => ({
+    attendanceRecords = attSnapshot.docs.map((doc) => ({
       ...doc.data(),
       id: doc.id
     }));
@@ -167,13 +179,12 @@ async function refreshData() {
     updateDashboard();
   } catch (error) {
     console.error(error);
-    alert("Data load nahi hua. Firebase settings aur rules check karein.");
+    alert("Data load failed. Firebase configuration aur rules check karein.");
   }
 }
 
-// DAILY ATTENDANCE SHEET
 function renderAttendance() {
-  const date = attendanceDate.value;
+  const date = $("attendanceDate").value;
   const body = $("attendanceBody");
 
   if (!date) {
@@ -183,7 +194,7 @@ function renderAttendance() {
 
   if (!employees.length) {
     body.innerHTML =
-      '<tr><td colspan="3">Pehle employee add karein.</td></tr>';
+      '<tr><td colspan="3">Pehle apna personal record add karein.</td></tr>';
     return;
   }
 
@@ -192,33 +203,21 @@ function renderAttendance() {
       (item) => item.date === date && item.employeeId === employee.code
     );
 
-    const currentStatus = record?.status || "";
+    const status = record?.status || "";
+    const options = ["Present", "Absent", "Half Day", "Weekly Off"];
 
     return `
       <tr>
         <td>${escapeHTML(employee.code)}</td>
         <td>${escapeHTML(employee.name)}</td>
         <td>
-          <select
-            data-employee="${escapeHTML(employee.code)}"
-            class="status-select"
-            aria-label="Attendance for ${escapeHTML(employee.name)}"
-          >
-            <option value="" ${currentStatus === "" ? "selected" : ""}>
-              Unmarked
-            </option>
-            <option value="Present" ${currentStatus === "Present" ? "selected" : ""}>
-              Present
-            </option>
-            <option value="Absent" ${currentStatus === "Absent" ? "selected" : ""}>
-              Absent
-            </option>
-            <option value="Half Day" ${currentStatus === "Half Day" ? "selected" : ""}>
-              Half Day
-            </option>
-            <option value="Weekly Off" ${currentStatus === "Weekly Off" ? "selected" : ""}>
-              Weekly Off
-            </option>
+          <select class="status-select"
+            data-code="${escapeHTML(employee.code)}"
+            aria-label="Attendance for ${escapeHTML(employee.name)}">
+            <option value="" ${!status ? "selected" : ""}>Unmarked</option>
+            ${options.map((option) =>
+              `<option value="${option}" ${status === option ? "selected" : ""}>${option}</option>`
+            ).join("")}
           </select>
         </td>
       </tr>
@@ -228,18 +227,20 @@ function renderAttendance() {
   body.querySelectorAll(".status-select").forEach((select) => {
     select.addEventListener("change", async () => {
       if (saving) {
-        showMessage("attendanceMessage", "Ek save complete hone dein.", true);
+        showMessage("attendanceMessage", "Please wait for the current save.", true);
         return;
       }
 
-      const employeeId = select.dataset.employee;
+      const dateValue = $("attendanceDate").value;
+      const code = select.dataset.code;
       const status = select.value;
-      const documentId = `${date}_${employeeId}`;
+      const documentId = `${dateValue}_${code}`;
+
       saving = true;
       select.disabled = true;
 
       try {
-        const ref = db.collection("attendance").doc(documentId);
+        const ref = attendanceCollection().doc(documentId);
 
         if (!status) {
           await ref.delete();
@@ -248,8 +249,8 @@ function renderAttendance() {
           );
         } else {
           const record = {
-            employeeId,
-            date,
+            employeeId: code,
+            date: dateValue,
             status,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           };
@@ -270,12 +271,12 @@ function renderAttendance() {
           }
         }
 
-        showMessage("attendanceMessage", "Attendance cloud mein save ho gayi.");
+        showMessage("attendanceMessage", "Attendance saved successfully.");
         renderSalaryReport();
         updateDashboard();
       } catch (error) {
         console.error(error);
-        showMessage("attendanceMessage", "Save failed. Firebase rules check karein.", true);
+        showMessage("attendanceMessage", "Save failed. Please try again.", true);
         await refreshData();
       } finally {
         saving = false;
@@ -285,14 +286,13 @@ function renderAttendance() {
   });
 }
 
-// MONTHLY SALARY CALCULATION
 function getMonthlyStats(employee, month) {
-  const [year, monthNumber] = month.split("-").map(Number);
-  const daysInMonth = new Date(year, monthNumber, 0).getDate();
+  const [year, monthNum] = month.split("-").map(Number);
+  const days = new Date(year, monthNum, 0).getDate();
 
-  const records = attendanceRecords.filter((item) =>
-    item.employeeId === employee.code &&
-    item.date.startsWith(`${month}-`)
+  const records = attendanceRecords.filter(
+    (item) => item.employeeId === employee.code &&
+      item.date.startsWith(month + "-")
   );
 
   const count = (status) =>
@@ -303,15 +303,8 @@ function getMonthlyStats(employee, month) {
   const halfDay = count("Half Day");
   const weeklyOff = count("Weekly Off");
 
-  const dailyRate = Number(employee.monthlySalary) / daysInMonth;
-
-  // Assumption: weekly off is paid.
-  // Absent = one day's deduction; Half Day = half day's deduction.
+  const dailyRate = Number(employee.monthlySalary) / days;
   const deduction = dailyRate * (absent + halfDay * 0.5);
-  const payableSalary = Math.max(
-    0,
-    Number(employee.monthlySalary) - deduction
-  );
 
   return {
     present,
@@ -319,12 +312,12 @@ function getMonthlyStats(employee, month) {
     halfDay,
     weeklyOff,
     deduction,
-    payableSalary
+    payableSalary: Math.max(0, Number(employee.monthlySalary) - deduction)
   };
 }
 
 function renderSalaryReport() {
-  const month = reportMonth.value;
+  const month = $("reportMonth").value;
   const body = $("salaryBody");
 
   if (!month) {
@@ -333,8 +326,7 @@ function renderSalaryReport() {
   }
 
   if (!employees.length) {
-    body.innerHTML =
-      '<tr><td colspan="6">Koi employee add nahi hua.</td></tr>';
+    body.innerHTML = '<tr><td colspan="6">No personal records found.</td></tr>';
     $("totalSalary").textContent = money(0);
     return;
   }
@@ -354,8 +346,7 @@ function renderSalaryReport() {
         <td>${stats.absent}</td>
         <td>${stats.halfDay}</td>
         <td>${stats.weeklyOff}</td>
-        <td>
-          <strong>${money(stats.payableSalary)}</strong><br>
+        <td><strong>${money(stats.payableSalary)}</strong><br>
           <small>Deduction: ${money(stats.deduction)}</small>
         </td>
       </tr>
@@ -365,12 +356,11 @@ function renderSalaryReport() {
   $("totalSalary").textContent = money(total);
 }
 
-// DASHBOARD
 function updateDashboard() {
   $("totalEmployees").textContent = employees.length;
 
   const today = attendanceRecords.filter(
-    (item) => item.date === attendanceDate.value
+    (item) => item.date === $("attendanceDate").value
   );
 
   $("presentToday").textContent =
