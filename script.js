@@ -1,10 +1,10 @@
 
 /* ==========================================
-   ABHI'S PERSONAL ATTENDANCE MANAGER
-   Firebase Login + Attendance + Salary
+   ABHI MANAGER - FIREBASE APPLICATION
+   HTML + CSS + JavaScript
 ========================================== */
 
-// IMPORTANT: Apni asli Firebase config yahan paste karein.
+// 1. Firebase Console se actual config paste karein.
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -14,38 +14,35 @@ const firebaseConfig = {
   appId: "YOUR_APP_ID"
 };
 
-const $ = (id) => document.getElementById(id);
+const $ = id => document.getElementById(id);
 
 let auth = null;
 let db = null;
 let user = null;
 let employees = [];
 let attendanceRecords = [];
-let loadingData = false;
-const savingAttendance = new Set();
+let loading = false;
+const pendingSaves = new Set();
 
 const STATUSES = ["Present", "Absent", "Half Day", "Weekly Off"];
 
-// ---------- FIREBASE INITIALIZATION ----------
-
+// 2. Firebase initialize
 function initializeFirebase() {
   try {
     if (typeof firebase === "undefined") {
       throw new Error("Firebase SDK load nahi hua.");
     }
 
-    const configValues = [
+    const required = [
       firebaseConfig.apiKey,
       firebaseConfig.authDomain,
       firebaseConfig.projectId,
       firebaseConfig.appId
     ];
 
-    if (configValues.some(
-      value => !value || value.includes("YOUR_")
-    )) {
+    if (required.some(v => !v || v.startsWith("YOUR_"))) {
       throw new Error(
-        "script.js mein actual Firebase configuration paste karein."
+        "script.js mein Firebase Console ki asli config paste karein."
       );
     }
 
@@ -56,132 +53,98 @@ function initializeFirebase() {
     auth = firebase.auth();
     db = firebase.firestore();
     return true;
-
   } catch (error) {
-    console.error("Firebase initialization:", error);
-    showMessage("loginError", error.message, true);
+    console.error(error);
+    message("loginError", error.message, true);
     return false;
   }
 }
 
-// ---------- COMMON HELPERS ----------
+// 3. Helpers
+function message(id, text, error = false) {
+  const el = $(id);
+  if (!el) return;
+  el.textContent = text;
+  el.style.color = error ? "#dc2626" : "#15803d";
+}
+
+function today() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 function money(value) {
-  const amount = Number(value) || 0;
-
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 2
-  }).format(amount);
-}
-
-function todayString() {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function showMessage(id, message, error = false) {
-  const element = $(id);
-  if (!element) return;
-
-  element.textContent = message;
-  element.style.color = error ? "#dc2626" : "#15803d";
+  }).format(Number(value) || 0);
 }
 
 function escapeHTML(value) {
-  return String(value).replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[char]);
+  return String(value).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;",
+    '"': "&quot;", "'": "&#39;"
+  })[c]);
 }
 
-function databaseError(id, error) {
-  console.error("Firebase error:", error.code, error.message);
-
-  let message = "Operation failed. Dobara try karein.";
-
-  if (error.code === "permission-denied") {
-    message = "Firestore permission denied. Security Rules check karein.";
-  } else if (error.code === "unavailable") {
-    message = "Database unavailable hai. Internet check karein.";
-  } else if (error.code === "unauthenticated") {
-    message = "Session expire ho gaya. Dobara login karein.";
-  }
-
-  showMessage(id, message, true);
-}
-
-// ---------- USER DATA COLLECTIONS ----------
-
+// 4. User-specific Firestore collections
 function employeeCollection(uid = user?.uid) {
-  if (!db || !uid) throw new Error("Login required.");
-
+  if (!uid || !db) throw new Error("Login required.");
   return db.collection("users").doc(uid).collection("employees");
 }
 
 function attendanceCollection(uid = user?.uid) {
-  if (!db || !uid) throw new Error("Login required.");
-
+  if (!uid || !db) throw new Error("Login required.");
   return db.collection("users").doc(uid).collection("attendance");
 }
 
-// ---------- LOGIN ----------
-
+// 5. Login
 $("loginForm").addEventListener("submit", async event => {
   event.preventDefault();
-  showMessage("loginError", "");
+  message("loginError", "");
 
   if (!auth) {
-    showMessage("loginError", "Firebase configuration check karein.", true);
+    message("loginError", "Firebase config check karein.", true);
     return;
   }
 
   const email = $("email").value.trim();
   const password = $("password").value;
-  const button = $("loginForm").querySelector('[type="submit"]');
+  const btn = $("loginBtn");
 
-  button.disabled = true;
-  button.textContent = "Logging in...";
+  btn.disabled = true;
+  btn.textContent = "Signing in...";
 
   try {
     await auth.signInWithEmailAndPassword(email, password);
-
   } catch (error) {
     console.error("Login error:", error.code, error.message);
 
-    const messages = {
+    const errors = {
       "auth/invalid-email": "Email address sahi nahi hai.",
       "auth/invalid-credential": "Email ya password galat hai.",
       "auth/user-not-found": "Account nahi mila.",
       "auth/wrong-password": "Password galat hai.",
       "auth/too-many-requests": "Bahut attempts hue. Baad mein try karein.",
       "auth/network-request-failed": "Internet connection check karein.",
-      "auth/operation-not-allowed": "Email/Password sign-in enable karein.",
-      "auth/invalid-api-key": "Firebase API key galat hai.",
-      "auth/user-disabled": "Yeh account disabled hai."
+      "auth/operation-not-allowed": "Email/Password provider enable karein.",
+      "auth/invalid-api-key": "Firebase API key check karein.",
+      "auth/user-disabled": "Account disabled hai."
     };
 
-    showMessage(
+    message(
       "loginError",
-      messages[error.code] || `Login failed: ${error.code || error.message}`,
+      errors[error.code] || `Login failed: ${error.code || error.message}`,
       true
     );
-
   } finally {
-    button.disabled = false;
-    button.textContent = "Login to Dashboard";
+    btn.disabled = false;
+    btn.textContent = "Sign in to Dashboard";
   }
 });
 
-// ---------- LOGOUT ----------
-
+// 6. Logout
 $("logoutBtn").addEventListener("click", async () => {
   if (!auth) return;
 
@@ -189,43 +152,39 @@ $("logoutBtn").addEventListener("click", async () => {
     await auth.signOut();
   } catch (error) {
     console.error("Logout error:", error);
-    showMessage("attendanceMessage", "Logout failed.", true);
+    message("attendanceMessage", "Logout failed.", true);
   }
 });
 
-// ---------- AUTH STATE ----------
+// 7. Authentication state
+authStateSetup();
 
-function clearDashboard() {
-  employees = [];
-  attendanceRecords = [];
-  savingAttendance.clear();
-
-  $("attendanceBody").replaceChildren();
-  $("salaryBody").replaceChildren();
-
-  $("totalEmployees").textContent = "0";
-  $("presentToday").textContent = "0";
-  $("absentToday").textContent = "0";
-  $("totalSalary").textContent = money(0);
-}
-
-function setupAuth() {
-  if (!auth) return;
+function authStateSetup() {
+  if (!initializeFirebase()) return;
 
   auth.onAuthStateChanged(async currentUser => {
     user = currentUser;
-
     $("loginSection").hidden = !!user;
     $("appSection").hidden = !user;
 
     if (!user) {
-      clearDashboard();
+      employees = [];
+      attendanceRecords = [];
+      pendingSaves.clear();
+
+      $("attendanceBody").replaceChildren();
+      $("salaryBody").replaceChildren();
+      $("totalEmployees").textContent = "0";
+      $("presentToday").textContent = "0";
+      $("absentToday").textContent = "0";
+      $("totalSalary").textContent = money(0);
+      $("userEmail").textContent = "";
       return;
     }
 
-    $("attendanceDate").value = todayString();
-    $("reportMonth").value = todayString().slice(0, 7);
-
+    $("userEmail").textContent = user.email || "";
+    $("attendanceDate").value = today();
+    $("reportMonth").value = today().slice(0, 7);
     $("todayLabel").textContent = new Date().toLocaleDateString("en-IN", {
       day: "numeric",
       month: "short",
@@ -236,13 +195,12 @@ function setupAuth() {
   });
 }
 
-// ---------- ADD RECORD ----------
-
+// 8. Add record
 $("employeeForm").addEventListener("submit", async event => {
   event.preventDefault();
 
-  if (!user || !db) {
-    showMessage("employeeMessage", "Pehle login karein.", true);
+  if (!user) {
+    message("employeeMessage", "Pehle login karein.", true);
     return;
   }
 
@@ -250,32 +208,28 @@ $("employeeForm").addEventListener("submit", async event => {
   const code = $("empCode").value.trim();
   const rawSalary = $("empSalary").value;
   const salary = Number(rawSalary);
-  const button = $("employeeForm").querySelector('[type="submit"]');
+  const btn = $("addRecordBtn");
 
   if (
     !name || !code || code.includes("/") ||
-    rawSalary.trim() === "" ||
-    !Number.isFinite(salary) || salary < 0
+    rawSalary === "" || !Number.isFinite(salary) || salary < 0
   ) {
-    showMessage("employeeMessage", "Valid details enter karein.", true);
+    message("employeeMessage", "Valid details enter karein.", true);
     return;
   }
 
   const uid = user.uid;
-  button.disabled = true;
-  button.textContent = "Saving...";
+  btn.disabled = true;
+  btn.textContent = "Saving...";
 
   try {
     const ref = employeeCollection(uid).doc(code);
 
-    // Existing record ko overwrite hone se bachata hai.
     await db.runTransaction(async transaction => {
-      const snapshot = await transaction.get(ref);
+      const existing = await transaction.get(ref);
 
-      if (snapshot.exists) {
-        const error = new Error("Yeh Record ID pehle se hai.");
-        error.code = "duplicate-record";
-        throw error;
+      if (existing.exists) {
+        throw new Error("DUPLICATE_RECORD");
       }
 
       transaction.set(ref, {
@@ -287,49 +241,47 @@ $("employeeForm").addEventListener("submit", async event => {
     });
 
     $("employeeForm").reset();
-    showMessage("employeeMessage", "Record successfully save ho gaya.");
-
+    message("employeeMessage", "Record successfully saved.");
     await refreshData();
-
   } catch (error) {
-    if (error.code === "duplicate-record") {
-      showMessage("employeeMessage", error.message, true);
-    } else {
-      databaseError("employeeMessage", error);
-    }
+    console.error("Record save error:", error);
+
+    message(
+      "employeeMessage",
+      error.message === "DUPLICATE_RECORD"
+        ? "Ye Record ID pehle se maujood hai."
+        : error.code === "permission-denied"
+          ? "Firestore permission denied. Security Rules check karein."
+          : "Record save nahi hua. Console check karein.",
+      true
+    );
   } finally {
-    button.disabled = false;
-    button.textContent = "+ Add Record";
+    btn.disabled = false;
+    btn.textContent = "+ Add Record";
   }
 });
 
-// ---------- FILTERS ----------
-
-$("attendanceDate").addEventListener("change", renderAttendance);
-$("reportMonth").addEventListener("change", renderSalaryReport);
-
-// ---------- LOAD DATA ----------
-
+// 9. Reload Firestore data
 async function refreshData() {
-  if (!user || !db || loadingData) return;
+  if (!user || loading) return;
 
-  loadingData = true;
+  loading = true;
   const uid = user.uid;
 
   try {
-    const [empSnapshot, attSnapshot] = await Promise.all([
+    const [empSnap, attSnap] = await Promise.all([
       employeeCollection(uid).get(),
       attendanceCollection(uid).get()
     ]);
 
     if (!user || user.uid !== uid) return;
 
-    employees = empSnapshot.docs.map(doc => ({
+    employees = empSnap.docs.map(doc => ({
       ...doc.data(),
       code: doc.id
     }));
 
-    attendanceRecords = attSnapshot.docs.map(doc => ({
+    attendanceRecords = attSnap.docs.map(doc => ({
       ...doc.data(),
       id: doc.id
     }));
@@ -341,16 +293,25 @@ async function refreshData() {
     renderAttendance();
     renderSalaryReport();
     updateDashboard();
-
   } catch (error) {
-    databaseError("attendanceMessage", error);
+    console.error("Data loading error:", error);
+    message(
+      "attendanceMessage",
+      error.code === "permission-denied"
+        ? "Firestore Rules permission deny kar rahe hain."
+        : "Data load nahi hua. Firebase config aur internet check karein.",
+      true
+    );
   } finally {
-    loadingData = false;
+    loading = false;
   }
 }
 
-// ---------- ATTENDANCE TABLE ----------
+// 10. Attendance date and salary month filters
+$("attendanceDate").addEventListener("change", renderAttendance);
+$("reportMonth").addEventListener("change", renderSalaryReport);
 
+// 11. Render attendance table
 function renderAttendance() {
   const date = $("attendanceDate").value;
   const body = $("attendanceBody");
@@ -362,37 +323,31 @@ function renderAttendance() {
 
   if (!employees.length) {
     body.innerHTML =
-      '<tr><td colspan="3">Pehle apna personal record add karein.</td></tr>';
+      '<tr><td colspan="3">Pehle ek record add karein.</td></tr>';
     return;
   }
 
-  body.innerHTML = employees.map(employee => {
+  body.innerHTML = employees.map(emp => {
     const record = attendanceRecords.find(item =>
-      item.date === date && item.employeeId === employee.code
+      item.date === date && item.employeeId === emp.code
     );
 
     const status = record?.status || "";
-    const documentId = `${date}_${employee.code}`;
-
-    const options = STATUSES.map(option => `
-      <option value="${option}" ${status === option ? "selected" : ""}>
-        ${option}
-      </option>
-    `).join("");
+    const docId = `${date}_${emp.code}`;
 
     return `
       <tr>
-        <td>${escapeHTML(employee.code)}</td>
-        <td>${escapeHTML(employee.name)}</td>
+        <td>${escapeHTML(emp.code)}</td>
+        <td>${escapeHTML(emp.name)}</td>
         <td>
-          <select
-            class="status-select"
-            data-code="${escapeHTML(employee.code)}"
-            aria-label="Attendance for ${escapeHTML(employee.name)}"
-            ${savingAttendance.has(documentId) ? "disabled" : ""}
-          >
+          <select class="status-select"
+            data-code="${escapeHTML(emp.code)}"
+            aria-label="Attendance for ${escapeHTML(emp.name)}"
+            ${pendingSaves.has(docId) ? "disabled" : ""}>
             <option value="" ${!status ? "selected" : ""}>Unmarked</option>
-            ${options}
+            ${STATUSES.map(s => `
+              <option value="${s}" ${status === s ? "selected" : ""}>${s}</option>
+            `).join("")}
           </select>
         </td>
       </tr>
@@ -404,44 +359,34 @@ function renderAttendance() {
   });
 }
 
-// ---------- SAVE ATTENDANCE ----------
-
+// 12. Save attendance
 async function saveAttendance(event) {
   const select = event.currentTarget;
+  if (!user) return;
 
-  if (!user || !db) {
-    showMessage("attendanceMessage", "Pehle login karein.", true);
-    return;
-  }
-
+  const uid = user.uid;
   const date = $("attendanceDate").value;
   const code = select.dataset.code;
   const status = select.value;
+  const docId = `${date}_${code}`;
 
-  if (!date || !code) return;
+  if (pendingSaves.has(docId)) return;
 
   if (status && !STATUSES.includes(status)) {
-    showMessage("attendanceMessage", "Invalid status.", true);
-    renderAttendance();
+    message("attendanceMessage", "Invalid status.", true);
     return;
   }
 
-  const documentId = `${date}_${code}`;
-
-  if (savingAttendance.has(documentId)) return;
-
-  const uid = user.uid;
-  savingAttendance.add(documentId);
+  pendingSaves.add(docId);
   select.disabled = true;
 
   try {
-    const ref = attendanceCollection(uid).doc(documentId);
+    const ref = attendanceCollection(uid).doc(docId);
 
     if (!status) {
       await ref.delete();
-
       attendanceRecords = attendanceRecords.filter(
-        item => item.id !== documentId
+        item => item.id !== docId
       );
     } else {
       const record = {
@@ -453,58 +398,47 @@ async function saveAttendance(event) {
 
       await ref.set(record);
 
-      const index = attendanceRecords.findIndex(
-        item => item.id === documentId
-      );
+      const index = attendanceRecords.findIndex(item => item.id === docId);
 
       if (index >= 0) {
-        attendanceRecords[index] = {
-          ...attendanceRecords[index],
-          ...record
-        };
+        attendanceRecords[index] = { ...attendanceRecords[index], ...record };
       } else {
-        attendanceRecords.push({ ...record, id: documentId });
+        attendanceRecords.push({ ...record, id: docId });
       }
     }
 
     if (!user || user.uid !== uid) return;
 
-    showMessage(
+    message(
       "attendanceMessage",
       status ? "Attendance saved successfully." : "Attendance mark removed."
     );
 
     renderSalaryReport();
     updateDashboard();
-
   } catch (error) {
-    databaseError("attendanceMessage", error);
+    console.error("Attendance save error:", error);
+    message(
+      "attendanceMessage",
+      error.code === "permission-denied"
+        ? "Permission denied. Firestore Rules check karein."
+        : "Attendance save nahi hui. Dobara try karein.",
+      true
+    );
 
-    try {
-      if (user && user.uid === uid) await refreshData();
-    } catch (reloadError) {
-      console.error(reloadError);
-    }
+    await refreshData();
   } finally {
-    savingAttendance.delete(documentId);
-
-    if (user && user.uid === uid) {
-      renderAttendance();
-    }
+    pendingSaves.delete(docId);
+    if (user && user.uid === uid) renderAttendance();
   }
 }
 
-// ---------- MONTHLY SALARY ----------
-
-function getMonthlyStats(employee, month) {
+// 13. Monthly salary calculation
+function getMonthlyStats(emp, month) {
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
     return {
-      present: 0,
-      absent: 0,
-      halfDay: 0,
-      weeklyOff: 0,
-      deduction: 0,
-      payableSalary: 0
+      present: 0, absent: 0, halfDay: 0,
+      weeklyOff: 0, deduction: 0, payableSalary: 0
     };
   }
 
@@ -512,7 +446,7 @@ function getMonthlyStats(employee, month) {
   const days = new Date(year, monthNumber, 0).getDate();
 
   const records = attendanceRecords.filter(item =>
-    item.employeeId === employee.code &&
+    item.employeeId === emp.code &&
     typeof item.date === "string" &&
     item.date.startsWith(month + "-")
   );
@@ -525,9 +459,8 @@ function getMonthlyStats(employee, month) {
   const halfDay = count("Half Day");
   const weeklyOff = count("Weekly Off");
 
-  const salary = Math.max(0, Number(employee.monthlySalary) || 0);
+  const salary = Math.max(0, Number(emp.monthlySalary) || 0);
   const dailyRate = salary / days;
-
   const deduction = Math.min(
     salary,
     dailyRate * (absent + halfDay * 0.5)
@@ -543,8 +476,7 @@ function getMonthlyStats(employee, month) {
   };
 }
 
-// ---------- SALARY REPORT ----------
-
+// 14. Render salary report
 function renderSalaryReport() {
   const month = $("reportMonth").value;
   const body = $("salaryBody");
@@ -555,34 +487,31 @@ function renderSalaryReport() {
     return;
   }
 
+  $("salaryMonthLabel").textContent = month;
+
   if (!employees.length) {
     body.innerHTML =
-      '<tr><td colspan="6">No personal records found.</td></tr>';
-
+      '<tr><td colspan="6">No records found.</td></tr>';
     $("totalSalary").textContent = money(0);
     return;
   }
 
   let total = 0;
 
-  body.innerHTML = employees.map(employee => {
-    const stats = getMonthlyStats(employee, month);
+  body.innerHTML = employees.map(emp => {
+    const stats = getMonthlyStats(emp, month);
     total += stats.payableSalary;
 
     return `
       <tr>
-        <td>
-          ${escapeHTML(employee.name)}
-          <br><small>${escapeHTML(employee.code)}</small>
-        </td>
+        <td>${escapeHTML(emp.name)}<br>
+          <small>${escapeHTML(emp.code)}</small></td>
         <td>${stats.present}</td>
         <td>${stats.absent}</td>
         <td>${stats.halfDay}</td>
         <td>${stats.weeklyOff}</td>
-        <td>
-          <strong>${money(stats.payableSalary)}</strong>
-          <br><small>Deduction: ${money(stats.deduction)}</small>
-        </td>
+        <td><strong>${money(stats.payableSalary)}</strong><br>
+          <small>Deduction: ${money(stats.deduction)}</small></td>
       </tr>
     `;
   }).join("");
@@ -590,13 +519,11 @@ function renderSalaryReport() {
   $("totalSalary").textContent = money(total);
 }
 
-// ---------- DASHBOARD SUMMARY ----------
-
+// 15. Dashboard counters
 function updateDashboard() {
   $("totalEmployees").textContent = employees.length;
 
-  const today = todayString();
-  const records = attendanceRecords.filter(item => item.date === today);
+  const records = attendanceRecords.filter(item => item.date === today());
 
   $("presentToday").textContent = records.filter(
     item => item.status === "Present"
@@ -607,10 +534,4 @@ function updateDashboard() {
   ).length;
 
   renderSalaryReport();
-}
-
-// ---------- START APP ----------
-
-if (initializeFirebase()) {
-  setupAuth();
 }
